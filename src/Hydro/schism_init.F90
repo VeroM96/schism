@@ -42,7 +42,7 @@
 #endif
 
 #ifdef USE_ICM
-      use icm_mod, only : iSun,wqc,rIa,rIavg,hcansav,lfsav,stsav,rtsav
+      use icm_mod, only : iSun,wqc,rIa,rIavg,hcansav,lfsav,stsav,rtsav,nsav
       use icm_sed_mod, only: SED_BENDO,CTEMP,BBM,CPOS,PO4T2TM1S,NH4T2TM1S,NO3T2TM1S, &
                            & HST2TM1S,CH4T2TM1S,CH41TM1S,SO4T2TM1S,SIT2TM1S,BENSTR1S,CPOP,CPON,CPOC,  &
                            & NH41TM1S,NO31TM1S,HS1TM1S,SI1TM1S,PO41TM1S,PON1TM1S,PON2TM1S,PON3TM1S,POC1TM1S,POC2TM1S,&
@@ -5243,14 +5243,14 @@
 
 #ifdef USE_ICM
         !gfortran requires all chars have same length
-        ar_name(1:32)=(/'SED_BENDO','CTEMP    ','BBM      ','CPOS     ','PO4T2TM1S', &
+        ar_name(1:33)=(/'SED_BENDO','CTEMP    ','BBM      ','CPOS     ','PO4T2TM1S', &
      &'NH4T2TM1S','NO3T2TM1S','HST2TM1S ','CH4T2TM1S','CH41TM1S ','SO4T2TM1S', &
      &'SIT2TM1S ','BENSTR1S ','NH41TM1S ','NO31TM1S ','HS1TM1S  ','SI1TM1S  ', &
      &'PO41TM1S ','PON1TM1S ','PON2TM1S ','PON3TM1S ','POC1TM1S ','POC2TM1S ', &
      &'POC3TM1S ','POP1TM1S ','POP2TM1S ','POP3TM1S ','PSITM1S  ','BFORMAXS ', &
-     &'ISWBENS  ','DFEEDM1S ','hcansav  '/)
+     &'ISWBENS  ','DFEEDM1S ','hcansav  ','nsav     '/)
 !'
-        do k=1,32 !# of 1D arrays
+        do k=1,33 !# of 1D arrays
           if(myrank==0) then
             j=nf90_inq_varid(ncid2,trim(adjustl(ar_name(k))),mm)
             if(j/=NF90_NOERR) call parallel_abort('init: nc ICM1')
@@ -5326,6 +5326,8 @@
                 DFEEDM1S(ie)=buf3(i)
               else if(k==32) then
                 hcansav(ie)=buf3(i)
+              else if(k==33) then
+                nsav(ie)=buf3(i)
               endif
             endif !iegl
           enddo !i

@@ -135,6 +135,7 @@ subroutine WQinput(time)
     enddo !while 
     Daylen=(TD-TU)
 
+
     !PTT=pi/(TD-TU)
     !do i=1,3
     !  rIn(i)=12.d0*PTT*rIa
@@ -143,6 +144,16 @@ subroutine WQinput(time)
     write(errmsg,*)'Unknown ICM iRad value: ', iRad
     call parallel_abort(errmsg)
   endif!time_icm
+
+  if(iWind==1 .and. time_icm(4)<time) then !vmohr
+     do while(time_icm(4)<time)
+        if(iWind==1) then !uniform windfield
+           read(404,*)rtmp,vwind
+           time_icm(4)=rtmp
+        endif
+     enddo
+  endif
+
 
 
 !  !more work to do, put code in schism_step here, ZG
@@ -184,9 +195,9 @@ subroutine read_icm_param2
   implicit none
  
   !local variables
-  integer :: i,j,ie,ip,npgb,negb,nd,ne,itmp,itmp1(1),itmp2(1,1),k,k2,m,n,q
+  integer :: i,j,ie,ip,npgb,negb,nd,ne,itmp,itmp1(1),itmp2(1,1),k,k2,m,n,q,v,w
   real(8) :: rtmp
-  real(kind=iwp) :: rtmp1(1),rtmp2(1,1),xtmp,ytmp,ztmp,tmp,tmp1,tmp2
+  real(kind=iwp) :: rtmp1(1),rtmp2(1,1),xtmp,ytmp,ztmp,tmp,tmp1,tmp2,tmp3
   character(len=2) :: stmp
   real(kind=iwp) :: tWSRP,tWSLP,tWSPB1,tWSPB2,tWSPB3,tTurb,tWRea,tPC2TSS
   real(kind=iwp) :: tWSSBNET,tWSLBNET,tWSRBNET,tWS1BNET,tWS2BNET,tWS3BNET 
@@ -864,13 +875,16 @@ subroutine read_icm_param2
       open(10,file=in_dir(1:len_in_dir)//'sav_icm_lf.prop',status='old')
       open(31,file=in_dir(1:len_in_dir)//'sav_icm_st.prop',status='old')
       open(32,file=in_dir(1:len_in_dir)//'sav_icm_rt.prop',status='old')
+      open(33,file=in_dir(1:len_in_dir)//'sav_icm_n.prop',status='old')
+
 
       do i=1,ne_global
         read(10,*)j,tmp
         read(31,*)j,tmp1
         read(32,*)j,tmp2
-        if(tmp<0.or.tmp1<0.or.tmp2<0) then
-          write(errmsg,*)'ICM_init: illegal sav_*:',i,tmp,tmp1,tmp2
+        read(33,*)j,tmp3
+        if(tmp<0.or.tmp1<0.or.tmp2<0.or.tmp3<0) then
+          write(errmsg,*)'ICM_init: illegal sav_*:',i,tmp,tmp1,tmp2,tmp3
           call parallel_abort(errmsg)
         endif
 
@@ -879,31 +893,37 @@ subroutine read_icm_param2
            tlfsav(ne)=tmp
            tstsav(ne)=tmp1
            trtsav(ne)=tmp2
+           nsav(ne)=tmp3
         endif 
       enddo !i=ne_global
       close(10)
       close(31)
       close(32)
+      close(33)
 
     elseif(initsav==2) then
-      allocate(swild2(4,npa),stat=i)
+      allocate(swild2(5,npa),stat=i)
       if(i/=0) call parallel_abort('read_icm_input: alloc(1)')
       open(10,file=in_dir(1:len_in_dir)//'sav_icm_lf.gr3',status='old')
       open(31,file=in_dir(1:len_in_dir)//'sav_icm_st.gr3',status='old')
       open(32,file=in_dir(1:len_in_dir)//'sav_icm_rt.gr3',status='old')
+      open(33,file=in_dir(1:len_in_dir)//'sav_icm_n.gr3',status='old') !vmohr
       read(10,*); read(10,*) n,q
       read(31,*); read(31,*)k,m
       read(32,*); read(32,*)i,j
-      if(n/=ne_global.or.q/=np_global.or.i/=ne_global.or.j/=np_global.or.k/=ne_global.or.m/=np_global) then
-        call parallel_abort('ICM_init: Check sav_*.gr3') 
+      read(33,*); read(33,*)v,w
+      if(n/=ne_global.or.q/=np_global.or.i/=ne_global.or.j/=np_global.or.k/=ne_global.or.m/=np_global.or.v/=ne_global.or.w/=np_global) then
+        write(errmsg,*)'ICM_init: Check sav_*.gr3:',np_global,v,w
+        call parallel_abort(errmsg) 
       endif
 
       do i=1,np_global
         read(10,*)j,xtmp,ytmp,tmp
         read(31,*)j,xtmp,ytmp,tmp1
         read(32,*)j,xtmp,ytmp,tmp2
-        if(tmp<0.or.tmp1<0.or.tmp2<0) then
-          write(errmsg,*)'ICM_init: illegal sav_*:',i,tmp,tmp1,tmp2
+        read(33,*)j,xtmp,ytmp,tmp3
+        if(tmp<0.or.tmp1<0.or.tmp2<0.or.tmp3<0) then
+          write(errmsg,*)'ICM_init: illegal sav_*:',i,tmp,tmp1,tmp2,tmp3
           call parallel_abort(errmsg)
         endif
 
@@ -913,22 +933,26 @@ subroutine read_icm_param2
           swild2(2,nd)=tmp1
           swild2(3,nd)=tmp2
           swild2(4,nd)=rlf*tmp+rst*tmp1+rrt*tmp2+hcansav0
+          swild2(5,nd)=tmp3
         endif
       enddo!i=np_global
       close(10)
       close(31)
       close(32)
+      close(33)
 
       do i=1,nea
         tlfsav(i)=sum(swild2(1,elnode(1:i34(i),i)))/i34(i)
         tstsav(i)=sum(swild2(2,elnode(1:i34(i),i)))/i34(i)
         trtsav(i)=sum(swild2(3,elnode(1:i34(i),i)))/i34(i)
+        nsav(i) = sum(swild2(5,elnode(1:i34(i),i)))/i34(i)
       enddo !i
       deallocate(swild2)
     else
       write(errmsg,*)'ICM_init: illegal initsav:',initsav
       call parallel_abort(errmsg)
     endif !initsav
+    !write(16,*) 'nsav', nsav
 
     !distribute init tlfsav e.g. into different layes
     do i=1,nea
@@ -1027,6 +1051,7 @@ subroutine read_icm_param
   call get_param('icm.in','iBen',1,iBen,rtmp,stmp)
   call get_param('icm.in','iTBen',1,iTBen,rtmp,stmp)
   call get_param('icm.in','iRad',1,iRad,rtmp,stmp)
+  call get_param('icm.in','iWind',1,iWind,rtmp,stmp)
 !  call get_param('icm.in','iReg',1,iReg,rtmp,stmp)
   call get_param('icm.in','iCheck',1,iCheck,rtmp,stmp)
   call get_param('icm.in','iout_icm',1,iout_icm,rtmp,stmp)
@@ -1062,7 +1087,7 @@ subroutine read_icm_param
   endif
 #endif
 
-  !iAtm: atmospheric load; iBen: benthic flux; iRad: radiation 
+  !iAtm: atmospheric load; iBen: benthic flux; iRad: radiation; iWind : wind
   if(iAtm==1) then
     open(401,file=in_dir(1:len_in_dir)//'ICM_atm.th',status='old')
   endif 
@@ -1073,6 +1098,11 @@ subroutine read_icm_param
     open(403,file=in_dir(1:len_in_dir)//'ICM_rad.th',status='old')
   elseif(iRad/=1.and.iRad/=2) then
     call parallel_abort('error: iRad')
+  endif
+  if(iWind==1) then
+    open(404,file=in_dir(1:len_in_dir)//'ICM_wind.th',status='old')
+  elseif(iWind/=1.and.iWind/=2) then
+    call parallel_abort('error:iWind')
   endif
   time_icm=-999.0  !initializing time stamp
  
@@ -1249,6 +1279,32 @@ subroutine read_icm_param
     fclpsav=rtmp
     call get_param('icm.in','fcrpsav',2,itmp,rtmp,stmp)
     fcrpsav=rtmp
+    !read nshoot parameters !vmohr
+    call get_param('icm.in','minmsav',2,itmp,rtmp,stmp) 
+    minmsav=rtmp
+    call get_param('icm.in','sfmsav',2,itmp,rtmp,stmp)
+    sfmsav=rtmp
+    call get_param('icm.in','pdfsav',2,itmp,rtmp,stmp)
+    pdfsav=rtmp
+    call get_param('icm.in','apifsav',2,itmp,rtmp,stmp)
+    apifsav=rtmp
+    call get_param('icm.in','mvpnssav',2,itmp,rtmp,stmp)
+    mvpnssav=rtmp
+    call get_param('icm.in','sigsav',2,itmp,rtmp,stmp)
+    sigsav=rtmp
+    call get_param('icm.in','bbiomssav',2,itmp,rtmp,stmp)
+    bbiomssav=rtmp
+    call get_param('icm.in','lmrwsav',2,itmp,rtmp,stmp)
+    lmrwsav=rtmp
+    call get_param('icm.in','kwindsav',2,itmp,rtmp,stmp)
+    kwindsav=rtmp 
+    call get_param('icm.in','ktsav',2,itmp,rtmp,stmp)
+    ktsav=rtmp
+    call get_param('icm.in','kt0sav',2,itmp,rtmp,stmp)
+    kt0sav=rtmp
+    call get_param('icm.in','mrbsav',2,itmp,rtmp,stmp)
+    mrbsav=rtmp
+
 !  endif !isav_icm
 
   !read Carbon parameters

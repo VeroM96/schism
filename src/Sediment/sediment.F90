@@ -135,7 +135,8 @@
      & ipgl,nope_global,np_global,dp,h0,dpe,    &
      & iegl,out_wwm,pi,eta2,dp00,dldxy,we,time_stamp, &
      & itur,Phai,in_dir,out_dir,len_in_dir,len_out_dir, &
-     & uu2,vv2,dav
+     & uu2,vv2,dav, &
+     & isav,sav_nv   !vmohr
                             !Tsinghua group:+alphd,im_pick_up,Two_phase_mix
                             !phai_m !1120:-alphd,im_pick_up,Two_phase_mix,phai_m  +itur,Phai
       USE schism_msgp

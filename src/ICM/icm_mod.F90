@@ -69,6 +69,7 @@ module icm_mod
                                                     !lfNH4sav(nvrt)
   real(kind=iwp),save,allocatable,dimension(:) :: tlfNH4sav,tlfPO4sav
                                                     !tlfNH4sav(nea)
+  real(kind=iwp),save,allocatable,dimension(:) :: nsav !vmohr
 
 
   !PH model
@@ -85,6 +86,10 @@ module icm_mod
   real(kind=iwp),save,allocatable,dimension(:,:,:) :: GP
   real(kind=iwp),save,allocatable,dimension(:) :: rIavg_save !(nea)
   integer,save :: irSi, iLimit
+
+  !wind stress !vmohr
+  real(kind=iwp),save :: vwind !windspeed
+  integer,save :: iWind !switch for wind
  
   !sav growth rate and metabolism rate
   real(kind=iwp),save,allocatable,dimension(:) :: plfsav !plfsav(nvrt); 1/day
@@ -129,6 +134,12 @@ module icm_mod
   real(kind=iwp),save :: ktblfsav,ktbstsav,ktbrtsav 
   real(kind=iwp),save :: trlfsav,trstsav,trrtsav
   real(kind=iwp) :: pmaxsav,fisav,fnsav,fpsav !growth
+
+  !vmohr !sav nshoot parameters
+  real(kind=iwp),save :: minmsav, sfmsav,pdfsav !mortality
+  real(kind=iwp),save :: apifsav, mvpnssav, sigsav, bbiomssav, ktsav, kt0sav, mrbsav !growth
+  real(kind=iwp),save :: lmrwsav, kwindsav !wind impact
+
 
   !carbon parameters 
   real(kind=iwp),save :: FCRPZ,FCLPZ,FCDPZ

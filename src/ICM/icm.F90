@@ -1,3 +1,4 @@
+!icm_shoots_v6.F90
 !  Official VIMS HEM3D model 3rd generation is comprised of direct coupling of
 !  SCHISM hydrodynamic model and  ICM ( Integrated Compartment Model) water
 !  quality model including a benthic sediment flux model. The water column
@@ -531,74 +532,74 @@ subroutine ph_zbrent(ierr,imed,ph,K1,K2,Kw,Kb,Ct,Ca,Bt,rH)
   h=10.0**(-a); call ph_f(fa,imed,h,K1,K2,Kw,Kb,Ct,Ca,Bt,rH)
   h=10.0**(-b); call ph_f(fb,imed,h,K1,K2,Kw,Kb,Ct,Ca,Bt,rH)
 
-  !root must be bracketed in brent
-  if(fa*fb>0._iwp) then
-    ierr=5
-    return
-  endif
+!root must be bracketed in brent
+if(fa*fb>0._iwp) then
+ierr=5
+return
+endif
 
-  fc=fb
-  do i=1,nloop
-    if(fb*fc>0._iwp) then
-      c=a
-      fc=fa
-      d=b-a
-      e=d
-    endif !fb*fc>0.
-    if(abs(fc)<abs(fb)) then
-      a=b
-      b=c
-      c=a
-      fa=fb
-      fb=fc
-      fc=fa
-    endif !abs(fc)
-    tol1=2.d0*eps*abs(b)+0.5d0*tol !convergence check
-    xm=0.5d0*(c-b)
-    if(abs(xm)<=tol1.or.fb==0._iwp) then
-    !if(abs(xm)<=tol1.or.abs(fb)<=1.d-8) then
-      ph=b
-      return
-    endif
-    if(abs(e)>=tol1.and.abs(fa)>abs(fb)) then
-      s=fb/fa
-      if(a==c) then
-        p=2._iwp*xm*s
-        q=1._iwp-s
-      else
-        q=fa/fc
-        r=fb/fc
-        p=s*(2._iwp*xm*q*(q-r)-(b-a)*(r-1._iwp))
-        q=(q-1._iwp)*(r-1._iwp)*(s-1._iwp)
-      endif !a==c
-      if(p>0.d0) q=-q
-      p=abs(p)
-      m1=3._iwp*xm*q-abs(tol1*q)
-      m2=abs(e*q)
-      if(2._iwp*p<min(m1,m2)) then
-        e=d
-        d=p/q
-      else
-        d=xm
-        e=d
-      endif !2.*p<min
-    else
-      d=xm
-      e=d
-    endif !abs(e)
-    a=b;
-    fa=fb
-    if(abs(d)>tol1) then
-      b=b+d
-    else
-      b=b+sign(tol1,xm)
-    endif !abs(d)
-    h=10.0**(-b); !fb=(h+2.0*K2)*Ct*K1/(h*h+K1*h+K1*K2)+Kw/h-Ca-h
-    call ph_f(fb,imed,h,K1,K2,Kw,Kb,Ct,Ca,Bt,rH)
-  enddo !i
+fc=fb
+do i=1,nloop
+if(fb*fc>0._iwp) then
+c=a
+fc=fa
+d=b-a
+e=d
+endif !fb*fc>0.
+if(abs(fc)<abs(fb)) then
+a=b
+b=c
+c=a
+fa=fb
+fb=fc
+fc=fa
+endif !abs(fc)
+tol1=2.d0*eps*abs(b)+0.5d0*tol !convergence check
+xm=0.5d0*(c-b)
+if(abs(xm)<=tol1.or.fb==0._iwp) then
+!if(abs(xm)<=tol1.or.abs(fb)<=1.d-8) then
+ph=b
+return
+endif
+if(abs(e)>=tol1.and.abs(fa)>abs(fb)) then
+s=fb/fa
+if(a==c) then
+p=2._iwp*xm*s
+q=1._iwp-s
+else
+q=fa/fc
+r=fb/fc
+p=s*(2._iwp*xm*q*(q-r)-(b-a)*(r-1._iwp))
+q=(q-1._iwp)*(r-1._iwp)*(s-1._iwp)
+endif !a==c
+if(p>0.d0) q=-q
+p=abs(p)
+m1=3._iwp*xm*q-abs(tol1*q)
+m2=abs(e*q)
+if(2._iwp*p<min(m1,m2)) then
+e=d
+d=p/q
+else
+d=xm
+e=d
+endif !2.*p<min
+else
+d=xm
+e=d
+endif !abs(e)
+a=b;
+fa=fb
+if(abs(d)>tol1) then
+b=b+d
+else
+b=b+sign(tol1,xm)
+endif !abs(d)
+h=10.0**(-b); !fb=(h+2.0*K2)*Ct*K1/(h*h+K1*h+K1*K2)+Kw/h-Ca-h
+call ph_f(fb,imed,h,K1,K2,Kw,Kb,Ct,Ca,Bt,rH)
+enddo !i
 
-  ierr=6
-  ph=b
+ierr=6
+ph=b
 
 end subroutine ph_zbrent
 
@@ -606,26 +607,26 @@ subroutine ph_f(f,imed,h,K1,K2,Kw,Kb,Ct,Ca,Bt,rH)
 !--------------------------------------------------------------------
 !calculate the nonlinear equation value of PH
 !--------------------------------------------------------------------
-  use schism_glbl, only : iwp,errmsg
-  use schism_msgp, only : myrank,parallel_abort
-  implicit none
+use schism_glbl, only : iwp,errmsg
+use schism_msgp, only : myrank,parallel_abort
+implicit none
 !Error: tweak single
 !  integer, parameter :: rkind=8
-  integer, intent(in) :: imed
-  real(kind=iwp), intent(in) :: h,K1,K2,Kw,Kb,Ct,Ca,Bt,rH
-  real(kind=iwp), intent(out):: f
+integer, intent(in) :: imed
+real(kind=iwp), intent(in) :: h,K1,K2,Kw,Kb,Ct,Ca,Bt,rH
+real(kind=iwp), intent(out):: f
 
-  if(imed==1) then !no boric
-    f=(h+2.0*K2)*Ct*K1/(h*h+K1*h+K1*K2)+Kw/h-Ca-h/rH
-  elseif(imed==2) then !contain boric
-    f=(h+2.0*K2)*Ct*K1/(h*h+K1*h+K1*K2)+Kw/h+Bt*Kb/(h+Kb)-Ca-h/rH
-  elseif(imed==3) then !contain boric
-    f=(h+2.0*K2)*Ct*K1/(h*h+K1*h+K1*K2)+Kw/h+Bt*Kb/(h+Kb)-Ca-h
-  else
-    !stop 'unknown imed in PH calculation'
-    write(errmsg,*)'unknown imed in PH calculation'
-    call parallel_abort(errmsg) 
-  endif
+if(imed==1) then !no boric
+f=(h+2.0*K2)*Ct*K1/(h*h+K1*h+K1*K2)+Kw/h-Ca-h/rH
+elseif(imed==2) then !contain boric
+f=(h+2.0*K2)*Ct*K1/(h*h+K1*h+K1*K2)+Kw/h+Bt*Kb/(h+Kb)-Ca-h/rH
+elseif(imed==3) then !contain boric
+f=(h+2.0*K2)*Ct*K1/(h*h+K1*h+K1*K2)+Kw/h+Bt*Kb/(h+Kb)-Ca-h
+else
+!stop 'unknown imed in PH calculation'
+write(errmsg,*)'unknown imed in PH calculation'
+call parallel_abort(errmsg) 
+endif
 
 end subroutine ph_f
 
@@ -675,6 +676,49 @@ subroutine photosynthesis(id,hour,nv,it)
 !      enddo !k
 !    endif !it==
 
+    !canopy (hcansav) is always at or below surface and so kcnpy would stay at 1 or more
+    kcnpy=1
+    do k=1,nv
+      klev=nvrt-k+1 !SCHISM convention \in [kbe+1,nvrt] (upper level)
+      if(ze(klev-1,id)<hcansav(id)+ze(kbe(id),id).and.ze(klev,id)>=hcansav(id)+ze(kbe(id),id)) then
+        kcnpy=k
+        exit 
+      endif !kcnpy
+    enddo !k
+
+  endif !isav_icm
+
+  !if(myrank==0 .and. id==151) write(16,*) 'biomass in layer pre: ', lfsav(1:11,id)
+!VM: redistribution of biomass
+!calculate total biomass
+    tlfsav(id)=sum(lfsav(1:nv,id))
+    tstsav(id)=sum(stsav(1:nv,id))
+    trtsav(id)=sum(rtsav(1:nv,id))
+!    if(nsav(id)==0) then !if no shoots then no above ground biomass as well.
+!       tlfsav(id)=0.0
+!       tstsav(id)=0.0
+!       trtsav(id)=0.0
+!    endif
+
+!set biomass in layers to 0
+    lfsav(1:nv,id)=0;
+    stsav(1:nv,id)=0;
+    rtsav(1:nv,id)=0;
+!distribute biomass into layers
+    do k=1,nv
+      klev=nvrt-k+1
+      !if(myrank==0 .and. id==151) write(16,*) klev, ze(klev-1,id), hcansav(id)+ze(kbe(id),id)
+      if(ze(klev-1,id)<hcansav(id)+ze(kbe(id),id)) then
+        tmp=min(ze(klev,id),hcansav(id)+ze(kbe(id),id))-ze(klev-1,id) !>0
+        if(hcansav(id)<=0.or.tmp<=0) call parallel_abort('phyto: hcansav<=0')
+        lfsav(k,id)=tlfsav(id)*tmp/hcansav(id)
+        stsav(k,id)=tstsav(id)*tmp/hcansav(id)
+        rtsav(k,id)=trtsav(id)*tmp/hcansav(id)
+        if(myrank==0 .and. id==151) write(16,*) 'biomass', tlfsav(id), klev, tmp, hcansav(id)  
+      endif !ze
+    enddo !k
+
+!if(myrank==0 .and. id==151) write(16,*) 'biomass in layer pos: ', lfsav(1:11,id)
 
     !calculate the total lf,st biomass from canopy down to a lower level
     !Init negatve mass above canopy
@@ -706,17 +750,7 @@ subroutine photosynthesis(id,hour,nv,it)
     !hcansav(id)=min(hcansav(id),tdep,hcansav_limit)!limited in read_icm and calkwq
     ztcsav=max(tdep-hcansav(id),0._iwp) !submergence
 
-    !canopy (hcansav) is always at or below surface and so kcnpy would stay at 1 or more
-    kcnpy=1
-    do k=1,nv
-      klev=nvrt-k+1 !SCHISM convention \in [kbe+1,nvrt] (upper level)
-      if(ze(klev-1,id)<hcansav(id)+ze(kbe(id),id).and.ze(klev,id)>=hcansav(id)+ze(kbe(id),id)) then
-        kcnpy=k
-        exit 
-      endif !kcnpy
-    enddo !k
-
-  endif !isav_icm
+!VM moved kcnpy
 
 
   !ncai
@@ -757,12 +791,17 @@ subroutine photosynthesis(id,hour,nv,it)
     if(iRad==1)then
       sLight0=rIa !unit: W/m^2
     elseif(iRad==2) then
-      sLight0=max(real(rIa*sin(pi*(hour-TU)/Daylen),iwp),0._iwp) !unit: ly/day
+      if(hour>TU.and.hour<TD) then
+        sLight0=max(real(rIa*sin(pi*(hour-TU)/Daylen),iwp),0._iwp) !unit: ly/day
+      else 
+        sLight0=0._iwp
+      endif !TU TD
     else
       call parallel_abort('unknown iRad in icm.F90')
     endif!iRad
 
     sLight=sLight0
+    if(myrank==0.and.id==100) write(16,*) 'sLight: ',sLight
 
     do k=1,nv
       klev=nvrt-k+1 !SCHISM convention \in [kbe+1,nvrt] (upper level)
@@ -843,7 +882,8 @@ subroutine photosynthesis(id,hour,nv,it)
         rKe0=rKeC1*exp(-rval)
         !rKe0=rKeC1*exp(-rKeC2*Sal(k))
       elseif(iLight==2.or.iLight==3) then 
-        rKe0=Turb(id)+rKeChl*Chl+rKeTSS*TSED(k)
+        !rKe0=Turb(id)+rKeChl*Chl+rKeTSS*TSED(k)
+        rKe0=Turb(id)+rKeTSS*TSED(k)
       elseif(iLight==4) then
         rKe0=Turb(id)+rKeChl*Chl+rKeSal*Sal(k)
       endif !iLight
@@ -880,8 +920,8 @@ subroutine photosynthesis(id,hour,nv,it)
         do i=1,3
           rval=rKe*Dopt
           if(rval>50.or.rKe<0) then
-            write(errmsg,*)'check ICM iLight rKe*Dopt: ',rKe,Dopt,rval
-            call parallel_abort(errmsg)
+            write(errmsg,*)'check ICM iLight rKe*Dopt:',rKe,Dopt,rval,id,nv,TSED(k),rKeTSS,rKe0 
+            !call parallel_abort(errmsg)
           endif
           rIs(i)=max(rIavg*exp(-rval),rIm(i))
           !rIs(i)=max(rIavg*exp(-rKe*Dopt),rIm(i))
@@ -1043,7 +1083,7 @@ subroutine photosynthesis(id,hour,nv,it)
           rtmp=rKe0*(ztcsav-hdep)
           if(rtmp>50.0.or.rtmp<0.) then
             write(errmsg,*)'photosynthesis: check max light attenuation on canopy:',rKe0,ztcsav,hdep,rtmp
-            call parallel_abort(errmsg)
+            !call parallel_abort(errmsg)
           endif
           iatcnpysav=iabvcnpysav*exp(-rtmp)
         else
@@ -1068,7 +1108,7 @@ subroutine photosynthesis(id,hour,nv,it)
 
           if(tmp>50.0.or.tmp<=0.) then
             write(errmsg,*)'photosynthesis: check light attenuation on leaf:',k,rKeh1,rKeh2,rkshsav,zlfsav(k+1),zstsav(k+1),lfsav(k,id),stsav(k,id),tmp
-            call parallel_abort(errmsg)
+            !call parallel_abort(errmsg)
           endif
 
           if(iRad==2) then
@@ -1083,7 +1123,6 @@ subroutine photosynthesis(id,hour,nv,it)
 
           !light limitation function for sav
           fisav=iwcsav/sqrt(iwcsav*iwcsav+iksav*iksav) !>0
-
           if(fisav>1.or.fisav<0.or.fisav/=fisav) then
             write(errmsg,*)'photosynthesis: fisav>1.or.fisav<0:',fisav,rKe0,rKe,iksav,iwcsav, &
      &iatcnpysav,ztcsav,tdep,hcansav(id)
@@ -1094,12 +1133,13 @@ subroutine photosynthesis(id,hour,nv,it)
         endif !zlfsav(k+1)>0.and.zstsav(k+1)>0
 
         !N/P limitation function fnsav (denom checked)
-        fnsav=(NH4(k,1)+NO3(k,1)+CNH4(id)*khnwsav/khnssav)/(khnwsav+NH4(k,1)+NO3(k,1)+CNH4(id)*khnwsav/khnssav)
-        PO4td=PO4t(k,1)/(1.0+rKPO4p*TSED(k))
-        fpsav=(PO4td+CPIP(id)*khpwsav/khpssav)/(khpwsav+PO4td+CPIP(id)*khpwsav/khpssav)
+!        fnsav=(NH4(k,1)+NO3(k,1)+CNH4(id)*khnwsav/khnssav)/(khnwsav+NH4(k,1)+NO3(k,1)+CNH4(id)*khnwsav/khnssav)
+!        PO4td=PO4t(k,1)/(1.0+rKPO4p*TSED(k))
+!        fpsav=(PO4td+CPIP(id)*khpwsav/khpssav)/(khpwsav+PO4td+CPIP(id)*khpwsav/khpssav)
 
         !calculation of lf growth rate [1/day] as function of temp, light, N/P
-        plfsav(k)=pmaxsav*min(fisav,fnsav,fpsav)/acdwsav !acdwsav checked !>=0 with seeds, =0 for no seeds
+!        plfsav(k)=pmaxsav*min(fisav,fnsav,fpsav)/acdwsav !acdwsav checked !>=0 with seeds, =0 for no seeds
+        plfsav(k)=pmaxsav*fisav/acdwsav !acdwsav checked !>=0 with seeds, =0 for no seeds
 
       endif !isav_icm
 
@@ -1135,7 +1175,7 @@ subroutine calkwq(id,nv,ure,it)
 !calculate the mass balance equation in water column
 !----------------------------------------------------------------------------
   use icm_mod
-  use schism_glbl, only : iwp,NDTWQ,nvrt,ielg,dt,ne,nvrt,ze,kbe,errmsg
+  use schism_glbl, only : iwp,NDTWQ,nvrt,ielg,dt,ne,nvrt,ze,kbe,errmsg,windx,windy
   use schism_msgp, only : myrank, parallel_abort
   use icm_sed_mod, only : CPIP,CNH4,frnsav,frpsav
   implicit none
@@ -1161,6 +1201,9 @@ subroutine calkwq(id,nv,ure,it)
   !ncai 
   real(kind=iwp) :: nprsav,fnsedsav,fpsedsav
   integer :: lyrinit,klev
+   
+  !vmohr
+  real(kind=iwp) :: sssav, physsav, amortsav, ftempsav, fbiomsav, frhizsav, vpnssav, mortnsav, dnsav 
 
   time=it*dt
 
@@ -1955,7 +1998,7 @@ subroutine calkwq(id,nv,ure,it)
         call parallel_abort(errmsg)
       endif !nprsav
 
-      if(fnsedsav<=0) then
+      if(fnsedsav<0) then
         write(errmsg,*)'fnsedsav<0.0:',id,NH4(k,1),NO3(k,1),CNH4(id),khnssav,khnwsav
         call parallel_abort(errmsg)
       endif !fnsedsav
@@ -2096,7 +2139,7 @@ subroutine calkwq(id,nv,ure,it)
       !pre-calculation for P
       fpsedsav=CPIP(id)/(CPIP(id)+PO4t(k,1)*khpssav/khpwsav+1.e-8)
 
-      if(fpsedsav<=0.) then
+      if(fpsedsav<0.) then
         write(errmsg,*)'fpsedsav<0.0:',id,PO4t(k,1),CPIP(id),khpssav,khpwsav
         call parallel_abort(errmsg)
       endif !fnsedsav
@@ -2511,7 +2554,55 @@ subroutine calkwq(id,nv,ure,it)
     !  write(96,*)it,id,trtdosav(id)
     !endif !id
 
+    !changing number of shoots !vmohr
+    !wind from sflux
+    if(iWind==2) then
+      vwind = sqrt(windy(i)**2+windx(i)**2)
+      !write(16,*) 'vwind ', vwind , i, windy(i), windx(i)
+    endif
+    !shoot mortality
+    sssav = (tstsav(id) + tlfsav(id))/nsav(id)
+    physsav = lmrwsav*vwind/10.*exp(-kwindsav*tdep)
+    amortsav = minmsav + (sssav*sfmsav) + (physsav*pdfsav*apifsav)
+    mortnsav = amortsav * nsav(id)
+    !write(16,*) 'amortsav',id, amortsav, physsav, sssav, nsav(id), tlfsav(id), tstsav(id)
+    !write(16,*) 'mortnsav', id, mortnsav
+    !generative growth of shoots
+    if(Temp(nv)>= kt0sav) then
+      ftempsav = (Temp(nv)-kt0sav)/(ktsav+Temp(nv)-kt0sav)
+    elseif(Temp(nv)< kt0sav) then
+      ftempsav = 0.0
+    else
+      write(errmsg,*)'error rec ftempsav',Temp(k), kt0sav
+      call parallel_abort(errmsg)
+    endif !Temp(nv)
+    !write(16,*) 'ftempsav',id, ftempsav, Temp(nv)
 
+    if((tlfsav(id)+tstsav(id))<=sigsav) then
+      fbiomsav = 1-((tlfsav(id)+tstsav(id))/sigsav)**2
+    elseif((tlfsav(id)+tstsav(id))>sigsav) then
+      fbiomsav = 0
+    else
+      write(errmsg,*)'error rec fbiomsav',tlfsav(id),tstsav(id), sigsav
+      call parallel_abort(errmsg)
+    endif !tlfsav(id)+tstsav(id)
+    !write(16,*) 'fbiomsav',id, fbiomsav, tlfsav(id)+tstsav(id)
+    frhizsav = (trtsav(id)-(nsav(id)*bbiomssav))/bbiomssav
+    !write(16,*) 'frhizsav',id,frhizsav, trtsav(id)
+    vpnssav = mvpnssav *ftempsav * fbiomsav * frhizsav
+    !write(16,*) 'vpnssav',id,vpnssav
+    dnsav = vpnssav - mortnsav
+    !write(16,*) 'dnsv', id, dnsav
+    !update nsav
+    nsav(id) = nsav(id) + dnsav
+
+    if(nsav(id)<0) then
+      nsav(id) = 0
+    endif
+
+    if(nsav(id)<=(trtsav(id)/mrbsav)) then
+      nsav(id) = trtsav(id)/mrbsav
+    endif
 
   endif !isav_icm
 

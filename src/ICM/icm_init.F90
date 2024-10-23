@@ -52,7 +52,7 @@ subroutine icm_init
     & lfsav(nvrt,nea),stsav(nvrt,nea),rtsav(nvrt,nea), & !ncai !sav
     & plfsav(nvrt),bmlfsav(nvrt),bmstsav(nvrt),bmrtsav(nvrt), &
     & rtpocsav(nvrt),rtponsav(nvrt),rtpopsav(nvrt),rtdosav(nvrt),lfNH4sav(nvrt),lfPO4sav(nvrt), &
-    & patchsav(nea),tlfsav(nea),tstsav(nea),trtsav(nea),hcansavori(nea),hcansav(nea), &
+    & patchsav(nea),tlfsav(nea),tstsav(nea),trtsav(nea),hcansavori(nea),hcansav(nea),nsav(nea), &
     & tlfNH4sav(nea),tlfPO4sav(nea),trtpocsav(nea),trtponsav(nea),trtpopsav(nea),trtdosav(nea),stat=istat)
 
   if(istat/=0) call parallel_abort('Failed in alloc. icm_mod variables')
@@ -111,7 +111,7 @@ subroutine icm_init
   !ncai
   lfsav=1.0;    stsav=1.0;      rtsav=0.3; !init for each layer whole domain
   tlfsav=0.0;   tstsav=0.0;     trtsav=0.0;  
-  hcansavori=0.0;   hcansav=0.0
+  hcansavori=0.0;   hcansav=0.0    ;nsav=0.0;
   rtpocsav=0.0; rtponsav=0.0;   rtpopsav=0.0;   rtdosav=0.0
   trtpocsav=0.0;trtponsav=0.0;  trtpopsav=0.0;    trtdosav=0.0
   lfNH4sav=0.0; lfPO4sav=0.0

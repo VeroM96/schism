@@ -44,7 +44,7 @@
 #ifdef USE_ICM
       use icm_mod, only : iSun,iRea,WMS,wqc,PH_nd,lfsav,stsav,rtsav, &
                          &tlfsav,tstsav,trtsav,hcansav,Chl_el,PrmPrdt,DO_consmp,DIN_el,PON_el,isav_icm, &
-                         &EROH2S, EROLPOC,ERORPOC,GP
+                         &EROH2S, EROLPOC,ERORPOC,GP,nsav
       USE icm_sed_mod, only: CNH4,CNO3,CPIP,CPOS,CCH4,CSO4,CH2S,CPON,CPOP,CPOC, &
                             &sed_BENDO,CTEMP,BBM,PO4T2TM1S,NH4T2TM1S,NO3T2TM1S, &
                             &HST2TM1S,CH4T2TM1S,CH41TM1S,SO4T2TM1S,SIT2TM1S,BENSTR1S,CPOP,CPON,CPOC,&
@@ -822,14 +822,14 @@
 !            endif
 
             j=nf90_inq_varid(ncid_nu(k), "tracer_concentration",mm)
-            if(j/=NF90_NOERR) call parallel_abort('STEP: nudging(1)')
+            if(j/=NF90_NOERR) call parallel_abort('STEP: tracer nudging(1)')
 
             do m=itmp1,itmp2
               swild9=-9999.
               if(myrank==0) then
                 j=nf90_get_var(ncid_nu(k),mm,swild9(1:nvrt,1:nnu_pts(k)), &
      &(/m-itmp1+1,1,1,icount3/),(/1,nvrt,nnu_pts(k),1/))
-                if(j/=NF90_NOERR) call parallel_abort('STEP: nudging nc(2)')
+                if(j/=NF90_NOERR) call parallel_abort('STEP: tracer nudging nc(2)')
               endif !myrank
               call mpi_bcast(swild9,nvrt*mnu_pts,mpi_real,0,comm,istat)
               do i=1,nnu_pts(k)
@@ -896,7 +896,7 @@
           if(nhtsend1(i)/=0) then
             !if(i==myrank) call parallel_abort('MAIN: illegal comm.(2)')
             call mpi_isend(eta2,1,htsend_type(i),i,601,comm,srqst(i),ierr)
-            if(ierr/=MPI_SUCCESS) call parallel_abort('MAIN: send error (2)')
+            if(ierr/=MPI_SUCCESS) call parallel_abort('STEP: send error (2)')
 !'
           else
             srqst(i)=MPI_REQUEST_NULL
@@ -908,7 +908,7 @@
           if(nhtrecv1(i)/=0) then
             !if(i==myrank) call parallel_abort('MAIN: illegal comm.(2)')
             call mpi_irecv(block_refnd2_eta,1,htrecv_type(i),i,601,comm,rrqst(i),ierr)
-            if(ierr/=MPI_SUCCESS) call parallel_abort('MAIN: recv error (2)')
+            if(ierr/=MPI_SUCCESS) call parallel_abort('STEP: recv error (2)')
 !'
           else
             rrqst(i)=MPI_REQUEST_NULL
@@ -916,9 +916,9 @@
         enddo !i
 
         call mpi_waitall(nproc,rrqst,rstat,ierr)
-        if(ierr/=MPI_SUCCESS) call parallel_abort('MAIN: mpi_waitall rrqst tag=601',ierr)
+        if(ierr/=MPI_SUCCESS) call parallel_abort('STEP: mpi_waitall rrqst tag=601',ierr)
         call mpi_waitall(nproc,srqst,sstat,ierr)
-        if(ierr/=MPI_SUCCESS) call parallel_abort('MAIN: mpi_waitall srqst tag=601',ierr)
+        if(ierr/=MPI_SUCCESS) call parallel_abort('STEP: mpi_waitall srqst tag=601',ierr)
 !'
 
         !Compute fluxes by proc's that own ref. node #1 (as non-ghost)
@@ -931,7 +931,7 @@
             irank=ipgl(ndgb2)%rank
             if(irank/=myrank) then
               if(block_refnd2_eta(i)<-1.d6+1.d0) then
-                write(errmsg,*)'MAIN: htexchange not rite:',i,ndgb1,ndgb2,irank
+                write(errmsg,*)'STEP: htexchange not rite:',i,ndgb1,ndgb2,irank
                 call parallel_abort(errmsg)
               !else
               !  write(12,*)'htex:',i,ndgb1,ndgb2,irank,block_refnd2_eta(i)
@@ -951,7 +951,7 @@
         call mpi_allreduce(iq_block_lcl,iq_block,nhtblocks,itype,MPI_SUM,comm,ierr)
         do i=1,nhtblocks
           if(iq_block(i)<=0) then
-            write(errmsg,*)'MAIN: q_block left out:',i,iq_block(i)
+            write(errmsg,*)'STEP: q_block left out:',i,iq_block(i)
             call parallel_abort(errmsg)
           else
             q_block(i)=q_block(i)/iq_block(i)
@@ -1046,7 +1046,7 @@
             do j=1,2 !face
               ar=buf2(i,j)
               if(ar<=0.d0) then
-                write(errmsg,*) 'MAIN: Block areas<=0:',i,j,ar,it
+                write(errmsg,*) 'STEP: Block areas<=0:',i,j,ar,it
                 call parallel_abort(errmsg)
               endif
               !Test
@@ -1113,7 +1113,7 @@
         do k=1,nope_global
           if(ifltype(k)==1) then
             icount=icount+1
-            if(icount>nfltype) call parallel_abort('Wrong counting 2')
+            if(icount>nfltype) call parallel_abort('STEP: wrong counting 2')
             qthcon(k)=(1.d0-rat)*ath(icount,1,1,2)+rat*ath(icount,1,2,2)
           endif
         enddo !k
@@ -1142,7 +1142,7 @@
             do k=1,nope_global
               if(itrtype(i,k)==1) then
                 icount=icount+1
-                if(icount>ntrtype1(i)) call parallel_abort('Wrong counting 5')
+                if(icount>ntrtype1(i)) call parallel_abort('STEP: wrong counting 5')
 !'
                 trth(m,1,1,k)=(1.d0-rat)*ath(icount,m,1,5)+rat*ath(icount,m,2,5)
               endif
@@ -1156,10 +1156,10 @@
           ath2(:,:,:,1,1)=ath2(:,:,:,2,1)
           icount3=time/th_dt2(1)+2
           j=nf90_inq_varid(ncid_elev2D, "time_series",mm)
-          if(j/=NF90_NOERR) call parallel_abort('step: time_series')
+          if(j/=NF90_NOERR) call parallel_abort('step: time_series in elev2D.th.nc')
           j=nf90_get_var(ncid_elev2D,mm,ath2(1,1,1:nnode_et,2,1), &
     &(/1,1,1,icount3/),(/1,1,nnode_et,1/))
-          if(j/=NF90_NOERR) call parallel_abort('step: time_series1')
+          if(j/=NF90_NOERR) call parallel_abort('step: time_series in elev2D.th.nc (2)')
 
           th_time2(1,1)=th_time2(2,1)
           th_time2(2,1)=th_time2(2,1)+th_dt2(1)
@@ -1179,11 +1179,11 @@
         do k=1,nope_global
           if(iettype(k)>=4) then
             icount=icount+1
-            if(icount>nettype2) call parallel_abort('Wrong counting 7')
+            if(icount>nettype2) call parallel_abort('STEP: wrong counting 7')
             do j=1,nond_global(k)
 !              nd=iond_global(k,j)
               icount2=icount2+1
-              if(icount2>nnode_et) call parallel_abort('Wrong counting nodes')
+              if(icount2>nnode_et) call parallel_abort('STEP: wrong counting nodes')
 !'
               eth(j,k)=(1.d0-rat)*ath2(1,1,icount2,1,1)+rat*ath2(1,1,icount2,2,1)
             enddo !j
@@ -1200,10 +1200,10 @@
           if(myrank==0) then
             icount3=time/th_dt2(2)+2
             j=nf90_inq_varid(ncid_uv3D, "time_series",mm)
-            if(j/=NF90_NOERR) call parallel_abort('step: time_series3')
+            if(j/=NF90_NOERR) call parallel_abort('step: time_series in uv3D.th.nc')
             j=nf90_get_var(ncid_uv3D,mm,buffer(1:2,1:nvrt,1:nnode_fl), &
     &(/1,1,1,icount3/),(/2,nvrt,nnode_fl,1/))
-            if(j/=NF90_NOERR) call parallel_abort('step: time_series4')
+            if(j/=NF90_NOERR) call parallel_abort('step: time_series in uv3D.th.nc')
           endif !myrank
 
           call mpi_bcast(buffer,2*nvrt*nnode_fl,mpi_real,0,comm,istat)
@@ -1228,10 +1228,10 @@
         do k=1,nope_global
           if(iabs(ifltype(k))>=4) then
             icount=icount+1
-            if(icount>nfltype2) call parallel_abort('Wrong counting 6')
+            if(icount>nfltype2) call parallel_abort('STEP: wrong counting 6')
             do j=1,nond_global(k)
               icount2=icount2+1
-              if(icount2>nnode_fl) call parallel_abort('Wrong counting vel')
+              if(icount2>nnode_fl) call parallel_abort('STEP: wrong counting vel')
 !'
               uthnd(1:nvrt,j,k)=(1.d0-rat)*ath2(1,1:nvrt,icount2,1,2)+rat*ath2(1,1:nvrt,icount2,2,2) !ll frame if ics=2
               vthnd(1:nvrt,j,k)=(1.d0-rat)*ath2(2,1:nvrt,icount2,1,2)+rat*ath2(2,1:nvrt,icount2,2,2)
@@ -1255,7 +1255,7 @@
               if(j/=NF90_NOERR) call parallel_abort('step: time_series5')
               j=nf90_get_var(ncid_tr3D(i),mm,buffer(1:n,1:nvrt,1:nnode_tr2(i)), &
     &(/1,1,1,icount3/),(/n,nvrt,nnode_tr2(i),1/))
-              if(j/=NF90_NOERR) call parallel_abort('step: time_series6')
+              if(j/=NF90_NOERR) call parallel_abort('step: time_series in TR_.th.nc')
             endif !myrank
 
             call mpi_bcast(buffer,n*nvrt*nnode_tr2(i),mpi_real,0,comm,istat)
@@ -1285,7 +1285,7 @@
 !              if(icount>ntrtype2) call parallel_abort('Wrong counting 10')
               do j=1,nond_global(k)
                 icount2=icount2+1
-                if(icount2>nnode_tr2(i)) call parallel_abort('Wrong counting tr')
+                if(icount2>nnode_tr2(i)) call parallel_abort('STEP: wrong counting tr')
 !'
                 trth(irange_tr(1,i):irange_tr(2,i),1:nvrt,j,k)= &
      &(1.d0-rat)*ath2(irange_tr(1,i):irange_tr(2,i),1:nvrt,icount2,1,5)+ &
@@ -1448,7 +1448,7 @@
             carea(k)=buf2(k,1)
             clen(k)=buf2(k,2)
             if(clen(k)<=0.d0) then
-             write(errmsg,*)'wetted cross section length on open bnd <=0; boundary ndx=',k,', length=',clen(k)
+             write(errmsg,*)'STEP: wetted cross section length on open bnd <=0; boundary ndx=',k,', length=',clen(k)
              call parallel_abort(errmsg)
             endif
           endif
@@ -1491,14 +1491,14 @@
             endif
           enddo !jj
           if(nwild(j)==0) then
-            write(errmsg,*)'Open bnd side has non-bnd node:',i,ibnd,iplg(n1),iplg(n2)
+            write(errmsg,*)'STEP: open bnd side has non-bnd node:',i,ibnd,iplg(n1),iplg(n2)
             call parallel_abort(errmsg)
           endif
         enddo !j
 
         if(ifltype(ibnd)==1.or.ifltype(ibnd)==2) then
           if(carea(ibnd)==0.d0) then
-            write(errmsg,*)'Dry bnd side 2',ibnd,carea(ibnd)
+            write(errmsg,*)'STEP: dry bnd side on global bnd #:',ibnd,carea(ibnd)
             call parallel_abort(errmsg)
           endif
           vnth0=qthcon(ibnd)*ramp/carea(ibnd)
@@ -1509,7 +1509,7 @@
 !         uthnd is the normal vel.; no ramp up
           do k=1,nvrt
             if(uthnd(k,nwild(1),ibnd)<-98.d0.or.uthnd(k,nwild(2),ibnd)<-98.d0) then
-              write(errmsg,*)'MAIN: Problem with Flather:',iplg(n1),iplg(n2)
+              write(errmsg,*)'STEP: Problem with Flather:',iplg(n1),iplg(n2)
               call parallel_abort(errmsg)
             endif
             tmp=(uthnd(k,nwild(1),ibnd)+uthnd(k,nwild(2),ibnd))/2.d0
@@ -1596,7 +1596,7 @@
 #ifdef USE_SED2D
           if(idrag_sed2d<-1) then
             Cdp(i)=Cdsed(i)
-            if(Cdp(i)/=Cdp(i)) call parallel_abort('SED2D: NaN for Cd')
+            if(Cdp(i)/=Cdp(i)) call parallel_abort('STEP-SED2D: NaN for Cd')
           endif
 #endif
         enddo !i
@@ -1613,7 +1613,7 @@
           IF(myrank==0) WRITE(16,*)'done sed_roughness'
           !Check
           tmp=sum(rough_p)
-          if(tmp/=tmp) call parallel_abort('SED3D gave NaN from sed_roughness')
+          if(tmp/=tmp) call parallel_abort('STEP-SED3D gave NaN from sed_roughness')
         endif
 #endif
 !'
@@ -1645,7 +1645,7 @@
               !  write(12,*)'BL too fine (2):',i,bthick,rough_p(i),htot
               !endif
               !Cdp(i)=Cdmax
-              write(errmsg,*)'MAIN: dzb_min <= roughness at node ',iplg(i),dzb_min,rough_p(i)
+              write(errmsg,*)'STEP: dzb_min <= roughness at node ',iplg(i),dzb_min,rough_p(i)
               call parallel_abort(errmsg)
             else
               Cdp(i)=1.d0/(2.5d0*log(bthick/rough_p(i)))**2.d0
@@ -6735,11 +6735,13 @@
 
         !feedback from ICM to Hydro 
         if(isav==1.and.isav_icm==1)then
-          !Convert hcansav to nodes
+          !Convert hcansav to nodes !convert nsav to nodes
           do i=1,np
             sav_h(i)=sum(hcansav(indel(1:nne(i),i)))/real(nne(i),rkind)
+            sav_nv(i)=sum(nsav(indel(1:nne(i),i)))/real(nne(i),rkind) !vmohr
           enddo !i
           call exchange_p2d(sav_h)
+          call exchange_p2d(sav_nv)
 
           do i=1,npa
             !Do not allow SAV to grow out of init patch for the time being
@@ -7761,9 +7763,12 @@
      &'ICM_GP2',5,nvrt,nea,dble(GP(:,:,2)))
         if(iof_icm(42)==1) call writeout_nc(id_out_var(noutput+46), &
      &'ICM_GP3',5,nvrt,nea,dble(GP(:,:,3)))
+        if(iof_icm(68)==1) call writeout_nc(id_out_var(noutput+47), &
+     &'ICM_nsav',4,1,nea,dble(nsav))
 
-        noutput=noutput+42
-        icount=42 !offset
+
+        noutput=noutput+43
+        icount=43 !offset
 
         do i=1,ntrs(7)
           write(it_char,'(i72)')i
@@ -8299,19 +8304,20 @@
         j=nf90_def_var(ncid_hot,'ISWBENS',NF90_DOUBLE,var1d_dim,nwild(nvars_hot+30))
         j=nf90_def_var(ncid_hot,'DFEEDM1S',NF90_DOUBLE,var1d_dim,nwild(nvars_hot+31))
         j=nf90_def_var(ncid_hot,'hcansav',NF90_DOUBLE,var1d_dim,nwild(nvars_hot+32))
+        j=nf90_def_var(ncid_hot,'nsav',NF90_DOUBLE,var1d_dim,nwild(nvars_hot+33))
         !last dim must be node/elem/side- I suggest we swap indices for
         !these 2D arrays
         var2d_dim(1)=three_dim; var2d_dim(2)=elem_dim
-        j=nf90_def_var(ncid_hot,'CPOP',NF90_DOUBLE,var2d_dim,nwild(nvars_hot+33))
-        j=nf90_def_var(ncid_hot,'CPON',NF90_DOUBLE,var2d_dim,nwild(nvars_hot+34))
-        j=nf90_def_var(ncid_hot,'CPOC',NF90_DOUBLE,var2d_dim,nwild(nvars_hot+35))
+        j=nf90_def_var(ncid_hot,'CPOP',NF90_DOUBLE,var2d_dim,nwild(nvars_hot+34))
+        j=nf90_def_var(ncid_hot,'CPON',NF90_DOUBLE,var2d_dim,nwild(nvars_hot+35))
+        j=nf90_def_var(ncid_hot,'CPOC',NF90_DOUBLE,var2d_dim,nwild(nvars_hot+36))
         var2d_dim(1)=nvrt_dim; var2d_dim(2)=elem_dim
-        j=nf90_def_var(ncid_hot,'lfsav',NF90_DOUBLE,var2d_dim,nwild(nvars_hot+36))
-        j=nf90_def_var(ncid_hot,'stsav',NF90_DOUBLE,var2d_dim,nwild(nvars_hot+37))
-        j=nf90_def_var(ncid_hot,'rtsav',NF90_DOUBLE,var2d_dim,nwild(nvars_hot+38))
+        j=nf90_def_var(ncid_hot,'lfsav',NF90_DOUBLE,var2d_dim,nwild(nvars_hot+37))
+        j=nf90_def_var(ncid_hot,'stsav',NF90_DOUBLE,var2d_dim,nwild(nvars_hot+38))
+        j=nf90_def_var(ncid_hot,'rtsav',NF90_DOUBLE,var2d_dim,nwild(nvars_hot+39))
         !3D arrays
         var3d_dim(1)=ICM_ntr_dim; var3d_dim(2)=nvrt_dim; var3d_dim(3)=elem_dim
-        j=nf90_def_var(ncid_hot,'wqc',NF90_DOUBLE,var3d_dim,nwild(nvars_hot+39))
+        j=nf90_def_var(ncid_hot,'wqc',NF90_DOUBLE,var3d_dim,nwild(nvars_hot+40))
         j=nf90_enddef(ncid_hot)
 
         j=nf90_put_var(ncid_hot,nwild(nvars_hot+1),dble(SED_BENDO),(/1/),(/ne/))
@@ -8346,15 +8352,16 @@
         j=nf90_put_var(ncid_hot,nwild(nvars_hot+30),dble(ISWBENS),(/1/),(/ne/))
         j=nf90_put_var(ncid_hot,nwild(nvars_hot+31),dble(DFEEDM1S),(/1/),(/ne/))
         j=nf90_put_var(ncid_hot,nwild(nvars_hot+32),dble(hcansav),(/1/),(/ne/))
-        j=nf90_put_var(ncid_hot,nwild(nvars_hot+33),dble(transpose(CPOP(1:ne,1:3))),(/1,1/),(/3,ne/))
-        j=nf90_put_var(ncid_hot,nwild(nvars_hot+34),dble(transpose(CPON(1:ne,1:3))),(/1,1/),(/3,ne/))
-        j=nf90_put_var(ncid_hot,nwild(nvars_hot+35),dble(transpose(CPOC(1:ne,1:3))),(/1,1/),(/3,ne/))
-        j=nf90_put_var(ncid_hot,nwild(nvars_hot+36),dble(lfsav(1:nvrt,1:ne)),(/1,1/),(/nvrt,ne/))
-        j=nf90_put_var(ncid_hot,nwild(nvars_hot+37),dble(stsav(1:nvrt,1:ne)),(/1,1/),(/nvrt,ne/))
-        j=nf90_put_var(ncid_hot,nwild(nvars_hot+38),dble(rtsav(1:nvrt,1:ne)),(/1,1/),(/nvrt,ne/))
-        j=nf90_put_var(ncid_hot,nwild(nvars_hot+39),dble(wqc(1:ntrs(7),1:nvrt,1:ne)),(/1,1,1/),(/ntrs(7),nvrt,ne/))
-        
-        nvars_hot=nvars_hot+39 !update
+        j=nf90_put_var(ncid_hot,nwild(nvars_hot+33),dble(nsav),(/1/),(/ne/))
+        j=nf90_put_var(ncid_hot,nwild(nvars_hot+34),dble(transpose(CPOP(1:ne,1:3))),(/1,1/),(/3,ne/))
+        j=nf90_put_var(ncid_hot,nwild(nvars_hot+35),dble(transpose(CPON(1:ne,1:3))),(/1,1/),(/3,ne/))
+        j=nf90_put_var(ncid_hot,nwild(nvars_hot+36),dble(transpose(CPOC(1:ne,1:3))),(/1,1/),(/3,ne/))
+        j=nf90_put_var(ncid_hot,nwild(nvars_hot+37),dble(lfsav(1:nvrt,1:ne)),(/1,1/),(/nvrt,ne/))
+        j=nf90_put_var(ncid_hot,nwild(nvars_hot+38),dble(stsav(1:nvrt,1:ne)),(/1,1/),(/nvrt,ne/))
+        j=nf90_put_var(ncid_hot,nwild(nvars_hot+39),dble(rtsav(1:nvrt,1:ne)),(/1,1/),(/nvrt,ne/))
+        j=nf90_put_var(ncid_hot,nwild(nvars_hot+40),dble(wqc(1:ntrs(7),1:nvrt,1:ne)),(/1,1,1/),(/ntrs(7),nvrt,ne/))
+
+        nvars_hot=nvars_hot+40 !update
 #endif /*USE_ICM*/
 
         !write(12,*)'After hot trcr:',it,real(trel),real(tr_nd0)
